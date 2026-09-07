@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astrolabe</title>
+<link rel="stylesheet" href="styles.css?v=1">
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="labels"></div>
+<div id="hud">
+  <div class="top-bar panel">
+    <div class="wordmark">ASTROLABE</div>
+    <select id="nav-select" class="nav-select" aria-label="Jump to a landmark"></select>
+    <div class="layer-toggles">
+      <button id="toggle-measured" class="chip-btn active" aria-pressed="true">Measured</button>
+      <button id="toggle-model" class="chip-btn active" aria-pressed="true">Model</button>
+    </div>
+    <button id="sources-btn" class="chip-btn" title="Sources &amp; Method">Sources</button>
+    <button id="help-btn" class="chip-btn" title="Controls" aria-label="Controls">?</button>
+  </div>
+  <div class="zoom-bar panel">
+    <div class="zoom-readout" id="altitude-readout">—</div>
+    <input id="zoom-slider" type="range" min="0" max="1000" value="500" aria-label="Zoom / altitude from the Sun">
+    <div class="zoom-presets">
+      <button class="zoom-preset-btn" data-preset="neighbourhood">Neighbourhood<br>50 pc</button>
+      <button class="zoom-preset-btn" data-preset="bubble">Local Bubble<br>500 pc</button>
+      <button class="zoom-preset-btn" data-preset="arm">Orion Arm<br>5 kpc</button>
+      <button class="zoom-preset-btn" data-preset="galaxy">Whole Galaxy<br>60 kpc</button>
+      <button class="zoom-preset-btn" data-preset="edgeon">Edge-on<br>view</button>
+    </div>
+  </div>
+  <div class="time-bar panel">
+    <span class="date-readout" id="epoch-readout">Epoch J2016.0 (Gaia DR3) — a real snapshot, not a simulation</span>
+  </div>
+</div>
+<div id="sources-panel" class="modal-panel panel" hidden></div>
+<div id="help-panel" class="modal-panel panel" hidden>
+  <h3>Controls</h3>
+  <ul>
+    <li><b>Drag</b> — look around</li>
+    <li><b>Scroll / pinch / slider</b> — zoom toward the Sun</li>
+    <li><b>W A S D</b> — fly</li>
+    <li><b>Q / E</b> — down / up</li>
+    <li><b>Click or tap a label</b> — see that object's real data</li>
+  </ul>
+  <button class="chip-btn" id="help-close">Close</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.147.0/three.min.js"></script>
+<script type="module" src="scene.js?v=1"></script>
+<script type="module" src="ui.js?v=1"></script>
+</body>
+</html>
