@@ -173,20 +173,29 @@ function colorForBpRp(bpRp) {
   ];
 }
 
-async function buildRealMeasuredLayer(metaUrl, binUrl) {
-  const { meta, columns } = await loadTierBinary(metaUrl, binUrl);
-  const n = meta.row_count;
-  const positions = new Float32Array(n * 3);
-  const mags = new Float32Array(n);
-  const colors = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) {
-    positions[i * 3] = columns.x_pc[i] / PC_PER_UNIT;
-    positions[i * 3 + 1] = columns.z_pc[i] / PC_PER_UNIT;
-    positions[i * 3 + 2] = -columns.y_pc[i] / PC_PER_UNIT;
-    const mag = columns.phot_g_mean_mag ? columns.phot_g_mean_mag[i] : (columns.mag ? columns.mag[i] : 6);
-    mags[i] = Number.isFinite(mag) ? mag : 12;
-    const [r, g, b] = colorForBpRp(columns.bp_rp ? columns.bp_rp[i] : NaN);
-    colors[i * 3] = r; colors[i * 3 + 1] = g; colors[i * 3 + 2] = b;
+// Loads and merges one or more tier binaries (Tier B + Tier C share the
+// same struct-of-arrays column shape) into a single star Points cloud,
+// so the whole "measured stars" layer is one draw call.
+async function buildRealMeasuredLayer(tierUrls) {
+  const loaded = await Promise.all(tierUrls.map((t) => loadTierBinary(t.metaUrl, t.binUrl)));
+  const total = loaded.reduce((sum, t) => sum + t.meta.row_count, 0);
+  const positions = new Float32Array(total * 3);
+  const mags = new Float32Array(total);
+  const colors = new Float32Array(total * 3);
+  let offset = 0;
+  for (const { meta, columns } of loaded) {
+    const n = meta.row_count;
+    for (let i = 0; i < n; i++) {
+      const o = offset + i;
+      positions[o * 3] = columns.x_pc[i] / PC_PER_UNIT;
+      positions[o * 3 + 1] = columns.z_pc[i] / PC_PER_UNIT;
+      positions[o * 3 + 2] = -columns.y_pc[i] / PC_PER_UNIT;
+      const mag = columns.phot_g_mean_mag ? columns.phot_g_mean_mag[i] : (columns.mag ? columns.mag[i] : 6);
+      mags[o] = Number.isFinite(mag) ? mag : 12;
+      const [r, g, b] = colorForBpRp(columns.bp_rp ? columns.bp_rp[i] : NaN);
+      colors[o * 3] = r; colors[o * 3 + 1] = g; colors[o * 3 + 2] = b;
+    }
+    offset += n;
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
@@ -202,8 +211,56 @@ async function buildRealMeasuredLayer(metaUrl, binUrl) {
   });
   const pts = new THREE.Points(geo, mat);
   pts.userData.isStarLayer = true;
-  pts.userData.rowCount = n;
+  pts.userData.rowCount = total;
   return pts;
+}
+
+// Tier A: the small, always-loaded structure layer (JSON, not binary).
+// Cepheids/masers/clusters render as a distinctly-colored point cloud
+// (too numerous to individually label, same reasoning Orrery uses for
+// not labeling every asteroid) — landmarks (Sun, Sgr A*) get real
+// clickable labels via addLandmark, same as before.
+async function buildTierAStructure(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(url + " " + res.status);
+  const data = await res.json();
+  const m = data.measured || {};
+  const groups = [
+    { rows: m.cepheids || [], color: [1.0, 0.85, 0.4] },
+    { rows: m.masers || [], color: [0.6, 1.0, 0.75] },
+    { rows: m.open_clusters || [], color: [0.7, 0.85, 1.0] },
+    { rows: m.globular_clusters || [], color: [1.0, 0.6, 0.85] },
+  ];
+  const total = groups.reduce((s, g) => s + g.rows.length, 0);
+  const positions = new Float32Array(total * 3);
+  const mags = new Float32Array(total).fill(3.5); // structure tracers render at a fixed, visible size
+  const colors = new Float32Array(total * 3);
+  let o = 0;
+  for (const g of groups) {
+    for (const row of g.rows) {
+      positions[o * 3] = row.x_pc / PC_PER_UNIT;
+      positions[o * 3 + 1] = row.z_pc / PC_PER_UNIT;
+      positions[o * 3 + 2] = -row.y_pc / PC_PER_UNIT;
+      colors[o * 3] = g.color[0]; colors[o * 3 + 1] = g.color[1]; colors[o * 3 + 2] = g.color[2];
+      o++;
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute("aMag", new THREE.BufferAttribute(mags, 1));
+  geo.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
+  const mat = new THREE.ShaderMaterial({
+    vertexShader: STAR_VERT,
+    fragmentShader: STAR_FRAG,
+    uniforms: { uExposure: { value: 1.0 }, uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.5) } },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const pts = new THREE.Points(geo, mat);
+  pts.userData.isModelStructureLayer = true;
+  pts.userData.rowCount = total;
+  return { points: pts, landmarks: m.landmarks || [] };
 }
 
 // ---- placeholder universe (fallback if real tier data isn't reachable) ---
@@ -486,18 +543,27 @@ function updateInfoPanel(def) {
 
 async function boot() {
   let dataStatus = "placeholder";
+  let structureLayer = null;
   try {
-    measuredLayer = await buildRealMeasuredLayer("data/tier_c_neighborhood.meta.json", "data/tier_c_neighborhood.bin");
+    measuredLayer = await buildRealMeasuredLayer([
+      { metaUrl: "data/tier_c_neighborhood.meta.json", binUrl: "data/tier_c_neighborhood.bin" },
+      { metaUrl: "data/tier_b_bright_stars.meta.json", binUrl: "data/tier_b_bright_stars.bin" },
+    ]);
     scene.add(measuredLayer);
-    addLandmark({ id: "sun", name: "Sun", kind: "landmark", layer: "measured", posPc: SUN_PC });
-    addLandmark({ id: "gc", name: "Sagittarius A∗", kind: "landmark", layer: "measured", posPc: GC_PC });
-    dataStatus = "real:tier_c_only"; // tier A (model/structure) and tier B (bright stars) not yet wired in
+
+    const structure = await buildTierAStructure("data/tier_a_structure.json");
+    structureLayer = structure.points;
+    modelLayer.add(structureLayer);
+    for (const lm of structure.landmarks) {
+      addLandmark({ id: lm.name.toLowerCase().replace(/\s+/g, "-"), name: lm.name, kind: "landmark", layer: "measured", posPc: { x: lm.x_pc, y: lm.y_pc, z: lm.z_pc } });
+    }
+    dataStatus = "real:full";
   } catch (err) {
     console.warn("Real tier data unavailable, falling back to placeholder:", err);
     const universe = buildPlaceholderUniverse();
     for (const lm of universe.landmarks) addLandmark(lm);
   }
-  window.__astrolabe = { landmarkBodies, rig, SUN_PC, GC_PC, dataStatus, scene, camera, measuredLayer, modelLayer, galacticPcToWorld, renderer, tick };
+  window.__astrolabe = { landmarkBodies, rig, SUN_PC, GC_PC, dataStatus, scene, camera, measuredLayer, modelLayer, structureLayer, galacticPcToWorld, renderer, tick };
   requestAnimationFrame(tick);
 }
 boot();
