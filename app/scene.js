@@ -130,6 +130,7 @@ function makeStarPoints(count, positionsPc, mags, colors) {
 }
 
 let measuredLayer = null;
+let structureLayer = null;
 let modelLayer = new THREE.Group();
 scene.add(modelLayer);
 
@@ -226,15 +227,16 @@ async function buildTierAStructure(url) {
   const data = await res.json();
   const m = data.measured || {};
   const groups = [
-    { rows: m.cepheids || [], color: [1.0, 0.85, 0.4] },
-    { rows: m.masers || [], color: [0.6, 1.0, 0.75] },
-    { rows: m.open_clusters || [], color: [0.7, 0.85, 1.0] },
-    { rows: m.globular_clusters || [], color: [1.0, 0.6, 0.85] },
+    { rows: m.cepheids || [], color: [1.0, 0.85, 0.4], kind: "cepheid" },
+    { rows: m.masers || [], color: [0.6, 1.0, 0.75], kind: "maser" },
+    { rows: m.open_clusters || [], color: [0.7, 0.85, 1.0], kind: "open cluster" },
+    { rows: m.globular_clusters || [], color: [1.0, 0.6, 0.85], kind: "globular cluster" },
   ];
   const total = groups.reduce((s, g) => s + g.rows.length, 0);
   const positions = new Float32Array(total * 3);
   const mags = new Float32Array(total).fill(3.5); // structure tracers render at a fixed, visible size
   const colors = new Float32Array(total * 3);
+  const pointMeta = new Array(total); // index -> {name, kind, posPc, arm?, source} for click-to-inspect
   let o = 0;
   for (const g of groups) {
     for (const row of g.rows) {
@@ -242,6 +244,7 @@ async function buildTierAStructure(url) {
       positions[o * 3 + 1] = row.z_pc / PC_PER_UNIT;
       positions[o * 3 + 2] = -row.y_pc / PC_PER_UNIT;
       colors[o * 3] = g.color[0]; colors[o * 3 + 1] = g.color[1]; colors[o * 3 + 2] = g.color[2];
+      pointMeta[o] = { name: row.name, kind: g.kind, posPc: { x: row.x_pc, y: row.y_pc, z: row.z_pc }, arm: row.arm, source: row.source };
       o++;
     }
   }
@@ -264,6 +267,7 @@ async function buildTierAStructure(url) {
   // The actual Model layer (spiral-arm/disk shape) doesn't exist yet.
   pts.userData.isStructureTracerLayer = true;
   pts.userData.rowCount = total;
+  pts.userData.pointMeta = pointMeta;
   return { points: pts, landmarks: m.landmarks || [] };
 }
 
@@ -386,15 +390,36 @@ function distToSunPc() {
 
 // ---- input: drag-to-look, WASD, wheel/pinch/slider zoom -------------------
 
-canvas.addEventListener("pointerdown", (e) => { rig.dragging = true; rig.lastX = e.clientX; rig.lastY = e.clientY; });
-addEventListener("pointerup", () => { rig.dragging = false; });
+let pointerMoveDist = 0;
+canvas.addEventListener("pointerdown", (e) => { rig.dragging = true; rig.lastX = e.clientX; rig.lastY = e.clientY; pointerMoveDist = 0; });
+addEventListener("pointerup", (e) => {
+  rig.dragging = false;
+  // A click (not a drag) on a structure-tracer point: raycast and inspect.
+  // Deliberately NOT raycasting against measuredLayer (800k+ raw stars) —
+  // per-star picking at that density needs GPU picking, not CPU raycasting;
+  // scoped out of this pass, see README's open-gaps list.
+  if (pointerMoveDist < 5 && structureLayer) pickStructurePoint(e.clientX, e.clientY);
+});
 addEventListener("pointermove", (e) => {
   if (!rig.dragging || pinch) return;
   const dx = e.clientX - rig.lastX, dy = e.clientY - rig.lastY;
+  pointerMoveDist += Math.hypot(dx, dy);
   rig.lastX = e.clientX; rig.lastY = e.clientY;
   rig.yaw -= dx * 0.0035;
   rig.pitch = Math.max(-1.5, Math.min(1.5, rig.pitch - dy * 0.0035));
 });
+
+const _raycaster = new THREE.Raycaster();
+_raycaster.params.Points.threshold = 8; // world units (pc); generous enough to hit a point without needing pixel precision
+function pickStructurePoint(clientX, clientY) {
+  const ndc = new THREE.Vector2((clientX / innerWidth) * 2 - 1, -(clientY / innerHeight) * 2 + 1);
+  _raycaster.setFromCamera(ndc, camera);
+  const hits = _raycaster.intersectObject(structureLayer, false);
+  if (!hits.length) return;
+  const meta = structureLayer.userData.pointMeta[hits[0].index];
+  if (!meta) return;
+  showStructureInfo(meta);
+}
 addEventListener("keydown", (e) => { rig.keys.add(e.code); });
 addEventListener("keyup", (e) => { rig.keys.delete(e.code); });
 
@@ -527,7 +552,24 @@ function updateLabels() {
   }
 }
 
-function updateInfoPanel(def) {
+function esc(s) { return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+function distFromSunLabel(posPc) {
+  return formatAlt(Math.hypot(posPc.x - SUN_PC.x, posPc.y - SUN_PC.y, posPc.z - SUN_PC.z));
+}
+
+let _landmarkFactsCache = null;
+async function loadLandmarkFacts() {
+  if (_landmarkFactsCache) return _landmarkFactsCache;
+  try {
+    const res = await fetch("data/landmark_facts.json");
+    _landmarkFactsCache = res.ok ? await res.json() : {};
+  } catch (e) {
+    _landmarkFactsCache = {};
+  }
+  return _landmarkFactsCache;
+}
+
+function getInfoPanelEl() {
   const hud = document.getElementById("hud");
   let panel = document.getElementById("info-panel");
   if (!panel) {
@@ -536,18 +578,51 @@ function updateInfoPanel(def) {
     panel.className = "panel";
     hud.appendChild(panel);
   }
+  return panel;
+}
+
+async function updateInfoPanel(def) {
+  const panel = getInfoPanelEl();
   panel.innerHTML = `
-    <div class="info-name">${def.name}</div>
+    <div class="info-name">${esc(def.name)}</div>
     <div class="info-layer-tag ${def.layer}">${def.layer}</div>
-    <div class="info-row"><span>Distance from Sun</span><span>${formatAlt(Math.hypot(def.posPc.x - SUN_PC.x, def.posPc.y - SUN_PC.y, def.posPc.z - SUN_PC.z))}</span></div>
+    <div class="info-row"><span>Distance from Sun</span><span>${distFromSunLabel(def.posPc)}</span></div>
   `;
+  const facts = await loadLandmarkFacts();
+  const entry = facts[def.id];
+  if (!entry) return;
+  let html = panel.innerHTML;
+  if (entry.tagline) html += `<p class="info-tagline">${esc(entry.tagline)}</p>`;
+  for (const f of entry.facts || []) {
+    html += `<div class="info-row"><span>${esc(f.label)}</span><span>${esc(f.value)}</span></div>`;
+  }
+  if (entry.scale_chain) {
+    html += `<div class="info-scale-chain"><p class="info-scale-caption">${esc(entry.scale_chain.caption)}</p>`;
+    for (const step of entry.scale_chain.steps) {
+      html += `<div class="info-scale-step"><div class="info-scale-label">${esc(step.label)}</div><div class="info-scale-value">${esc(step.value)}<span class="info-scale-note"> — ${esc(step.note)}</span></div></div>`;
+    }
+    html += `<p class="info-scale-source">${esc(entry.scale_chain.source)}</p></div>`;
+  }
+  panel.innerHTML = html;
+}
+
+const KIND_LABEL = {
+  cepheid: "Cepheid variable star", maser: "Star-forming region (maser)",
+  "open cluster": "Open star cluster", "globular cluster": "Globular star cluster",
+};
+function showStructureInfo(meta) {
+  const panel = getInfoPanelEl();
+  const rows = [`<div class="info-row"><span>Type</span><span>${esc(KIND_LABEL[meta.kind] || meta.kind)}</span></div>`,
+    `<div class="info-row"><span>Distance from Sun</span><span>${distFromSunLabel(meta.posPc)}</span></div>`];
+  if (meta.arm) rows.push(`<div class="info-row"><span>Spiral arm</span><span>${esc(meta.arm)}</span></div>`);
+  if (meta.source) rows.push(`<div class="info-row"><span>Source</span><span>${esc(meta.source)}</span></div>`);
+  panel.innerHTML = `<div class="info-name">${esc(meta.name)}</div><div class="info-layer-tag measured">measured</div>${rows.join("")}`;
 }
 
 // ---- boot -----------------------------------------------------------------
 
 async function boot() {
   let dataStatus = "placeholder";
-  let structureLayer = null;
   try {
     measuredLayer = await buildRealMeasuredLayer([
       { metaUrl: "data/tier_c_neighborhood.meta.json", binUrl: "data/tier_c_neighborhood.bin" },
@@ -559,7 +634,8 @@ async function boot() {
     structureLayer = structure.points;
     modelLayer.add(structureLayer);
     for (const lm of structure.landmarks) {
-      addLandmark({ id: lm.name.toLowerCase().replace(/\s+/g, "-"), name: lm.name, kind: "landmark", layer: "measured", posPc: { x: lm.x_pc, y: lm.y_pc, z: lm.z_pc } });
+      const slug = lm.name.toLowerCase().normalize("NFKD").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
+      addLandmark({ id: slug, name: lm.name, kind: "landmark", layer: "measured", posPc: { x: lm.x_pc, y: lm.y_pc, z: lm.z_pc } });
     }
     dataStatus = "real:full";
   } catch (err) {

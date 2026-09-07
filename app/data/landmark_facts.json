@@ -1,0 +1,29 @@
+{
+  "sun": {
+    "tagline": "The star this whole app is anchored to — an ordinary G-type star, about two-thirds of the way out from the galactic center.",
+    "facts": [
+      { "label": "Distance from Galactic Center", "value": "8,150 pc (≈ 26,600 light-years)" },
+      { "label": "Height above the galactic plane", "value": "20.8 pc (≈ 68 light-years)" },
+      { "label": "Located in", "value": "the Orion Arm (a minor spur, not one of the galaxy's major arms)" }
+    ],
+    "scale_chain": {
+      "caption": "Nothing here is standing still — speeds nest inside speeds:",
+      "steps": [
+        { "label": "Earth spins", "value": "≈ 1,670 km/h", "note": "at the equator" },
+        { "label": "…while orbiting the Sun at", "value": "≈ 107,000 km/h", "note": "29.78 km/s mean orbital speed" },
+        { "label": "…while the Sun orbits the galactic center at", "value": "≈ 792,000 km/h", "note": "220 km/s — one full orbit takes roughly 220 million years" },
+        { "label": "…while the whole system moves relative to the cosmic microwave background at", "value": "≈ 1,988,000 km/h", "note": "552.2 ± 5.5 km/s" }
+      ],
+      "source": "Wikipedia — Milky Way (infobox figures, citing COBE 1993 and standard galactic-rotation references)"
+    }
+  },
+  "sagittarius-a": {
+    "tagline": "The supermassive black hole at the very center of the galaxy — everything else in this scene orbits around it, however slowly.",
+    "facts": [
+      { "label": "Mass", "value": "4.10 ± 0.03 million solar masses" },
+      { "label": "Distance from the Sun", "value": "8,150 pc (≈ 26,600 light-years)" },
+      { "label": "First imaged", "value": "2022, Event Horizon Telescope" }
+    ]
+  },
+  "_source_note": "Figures fetched live from Wikipedia's Milky Way article (which cites COBE 1993, the EHT Sgr A* papers, and standard galactic-rotation-curve measurements) — see app/data/sources.json. Earth's own rotation/orbital speeds are standard values derivable directly from its known radius/rotation-period and orbital-speed, not separately cited."
+}

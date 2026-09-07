@@ -38,5 +38,15 @@
    "tier_a globular clusters"
   ],
   "layer": "measured"
+ },
+ {
+  "url": "https://en.wikipedia.org/wiki/Milky_Way",
+  "fetched_utc": "2026-09-07T14:05:52.193320+00:00",
+  "sha256": "b51b6b6d97537a188c2fc477c2adce8f8496e8d7fffca92223f7f59181bebdac",
+  "local_file": "/Volumes/Media/AutomationStore/project-artifacts/astrolabe/2026-09-07/raw-fetches/wikipedia_milky_way.html",
+  "supplies": [
+   "landmark facts: Sun galactic orbit speed, CMB motion, Sagittarius A* mass"
+  ],
+  "layer": "measured"
  }
 ]
