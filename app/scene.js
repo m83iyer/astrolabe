@@ -557,16 +557,21 @@ function distFromSunLabel(posPc) {
   return formatAlt(Math.hypot(posPc.x - SUN_PC.x, posPc.y - SUN_PC.y, posPc.z - SUN_PC.z));
 }
 
+// Only a genuine success is cached -- {} is truthy, so caching it on
+// failure would permanently poison every later lookup for the rest of
+// the page's life after one transient error (confirmed live: the very
+// first fetch attempt can race the initial ~22MB star-data load and
+// fail, silently breaking every subsequent click for that whole visit).
 let _landmarkFactsCache = null;
 async function loadLandmarkFacts() {
   if (_landmarkFactsCache) return _landmarkFactsCache;
   try {
     const res = await fetch("data/landmark_facts.json");
-    _landmarkFactsCache = res.ok ? await res.json() : {};
+    if (res.ok) _landmarkFactsCache = await res.json();
   } catch (e) {
-    _landmarkFactsCache = {};
+    console.warn("landmark_facts.json fetch failed, will retry next lookup:", e);
   }
-  return _landmarkFactsCache;
+  return _landmarkFactsCache || {};
 }
 
 function getInfoPanelEl() {
