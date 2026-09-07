@@ -53,7 +53,9 @@ snapshot (Gaia DR3 epoch, J2016.0) you fly through freely.
   clusters, landmarks), `build_tier_b.py` (bright stars: Gaia DR3 G<10 +
   Hipparcos-2 for Gaia's saturation gap + real IAU star names),
   `build_tier_c.py` (the solar neighborhood: Gaia Catalogue of Nearby
-  Stars, ~331k stars within 100 pc).
+  Stars, ~331k stars within 100 pc), `build_model_arms.py` (the Model
+  layer: 7 spiral-arm curves from Reid+2019's log-periodic fits, cross-
+  checked against Tier A's real masers as an independent oracle).
 - `DATA_SCHEMA.md` — the data contract.
 
 ## Data integrity
@@ -81,8 +83,28 @@ Live, real data: 805,929 stars (Tier B + Tier C combined) and 9,569
 structure tracers (Cepheids, masers, open + globular clusters) from
 Gaia DR3, the Gaia Catalogue of Nearby Stars, Hipparcos-2, Skowron+2019,
 Reid+2019, Hunt & Reffert 2023, and the Baumgardt+ globular cluster
-orbit database — fetched, hashed, and cited, not estimated. The two
-gaps still open: the **Model** layer (spiral-arm geometry and disk/bar
-shape) isn't built yet — everything currently on screen is the
-**Measured** layer — and there's no real per-object detail panel yet
+orbit database — fetched, hashed, and cited, not estimated.
+
+The **Model** layer is now built: all 7 of Reid+2019's spiral arms
+(3-kpc, Norma, Scutum-Centaurus, Sagittarius-Carina, Local, Perseus,
+Outer), each a log-periodic curve transcribed from the paper's own
+fitted parameters (Table 2), rendered as soft purple lines distinct
+from any Measured layer. These curves were cross-checked against Tier
+A's real, independently-positioned masers (which carry this same
+paper's arm-membership labels) as an oracle — a real check that caught
+and fixed three genuine bugs during development (a sign error in the
+azimuth convention, a Norma/Outer arm-grouping mismatch, and a maser
+right-ascension unit bug that had scrambled some positions by 15x).
+After those fixes, most arms match their labeled masers well; a few
+(Scutum-Centaurus and Sagittarius most notably) still show a wider
+scatter than the rest even after the same fixes were reconfirmed
+against all seven arms — the paper's own text notes some Table 1
+sources were excluded from its Table 2 fits, and this reconstruction's
+60-point polyline can't match the paper's continuous fit as tightly as
+its own internal precision. Rather than hide that gap, each affected
+arm carries an honest `confidence_note` in the shipped data
+(`app/data/tier_a_structure.json`), and the in-app Sources panel cites
+the paper directly.
+
+One gap still open: there's no real per-object detail panel yet
 (clicking a landmark shows only its distance from the Sun).

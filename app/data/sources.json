@@ -1,7 +1,17 @@
 [
  {
+  "url": "https://en.wikipedia.org/wiki/Milky_Way",
+  "fetched_utc": "2026-09-07T14:05:52.193320+00:00",
+  "sha256": "b51b6b6d97537a188c2fc477c2adce8f8496e8d7fffca92223f7f59181bebdac",
+  "local_file": "/Volumes/Media/AutomationStore/project-artifacts/astrolabe/2026-09-07/raw-fetches/wikipedia_milky_way.html",
+  "supplies": [
+   "landmark facts: Sun galactic orbit speed, CMB motion, Sagittarius A* mass"
+  ],
+  "layer": "measured"
+ },
+ {
   "url": "https://tapvizier.cds.unistra.fr/TAPVizieR/tap/sync (J/AcA/69/305/table1)",
-  "fetched_utc": "2026-09-07T13:57:26.620534+00:00",
+  "fetched_utc": "2026-09-07T14:44:12.284986+00:00",
   "sha256": "d40eae7f4c543dd100aee0ae5856dc89a6a84c793e6c7bc57ce77ee2b851c09e",
   "local_file": "/Volumes/Media/AutomationStore/project-artifacts/astrolabe/2026-09-07/raw-fetches/cepheids.json",
   "supplies": [
@@ -11,7 +21,7 @@
  },
  {
   "url": "https://tapvizier.cds.unistra.fr/TAPVizieR/tap/sync (J/ApJ/885/131/table1)",
-  "fetched_utc": "2026-09-07T13:57:27.496632+00:00",
+  "fetched_utc": "2026-09-07T14:44:13.152171+00:00",
   "sha256": "0183418d0eb1a9f3df646d3b8dc7ea7cbd80090240c842564a438389ef379e45",
   "local_file": "/Volumes/Media/AutomationStore/project-artifacts/astrolabe/2026-09-07/raw-fetches/masers.json",
   "supplies": [
@@ -21,7 +31,7 @@
  },
  {
   "url": "https://tapvizier.cds.unistra.fr/TAPVizieR/tap/sync (J/A+A/673/A114/clusters, Type=o)",
-  "fetched_utc": "2026-09-07T13:57:29.100850+00:00",
+  "fetched_utc": "2026-09-07T14:44:14.691988+00:00",
   "sha256": "c7c6aae6908c17d6c6b74d6d2d4df523fa3a3453c3f3abb9b14b68087352ddcc",
   "local_file": "/Volumes/Media/AutomationStore/project-artifacts/astrolabe/2026-09-07/raw-fetches/open_clusters.json",
   "supplies": [
@@ -31,7 +41,7 @@
  },
  {
   "url": "https://people.smp.uq.edu.au/HolgerBaumgardt/globular/orbits_table.txt",
-  "fetched_utc": "2026-09-07T13:57:31.739103+00:00",
+  "fetched_utc": "2026-09-07T14:44:17.867576+00:00",
   "sha256": "c95a085586e11e29a655a69fb9c31116072f774209ce561c11c92de1ede4bda3",
   "local_file": "/Volumes/Media/AutomationStore/project-artifacts/astrolabe/2026-09-07/raw-fetches/globular_clusters.txt",
   "supplies": [
@@ -40,13 +50,13 @@
   "layer": "measured"
  },
  {
-  "url": "https://en.wikipedia.org/wiki/Milky_Way",
-  "fetched_utc": "2026-09-07T14:05:52.193320+00:00",
-  "sha256": "b51b6b6d97537a188c2fc477c2adce8f8496e8d7fffca92223f7f59181bebdac",
-  "local_file": "/Volumes/Media/AutomationStore/project-artifacts/astrolabe/2026-09-07/raw-fetches/wikipedia_milky_way.html",
+  "url": "https://arxiv.org/pdf/1910.03357",
+  "fetched_utc": "2026-09-07T18:32:46+00:00",
+  "sha256": "07ef9a014fbd1d2fc83b0aebbbfa1d6be2170fad0e8ee0b52e987faddc4613a1",
+  "local_file": "/Volumes/Media/AutomationStore/project-artifacts/astrolabe/2026-09-07/raw-fetches/reid2019_arms.pdf",
   "supplies": [
-   "landmark facts: Sun galactic orbit speed, CMB motion, Sagittarius A* mass"
+   "model spiral-arm log-periodic fit parameters (Table 2): 3-kpc, Norma, Scutum-Centaurus, Sagittarius-Carina, Local, Perseus, Outer arms"
   ],
-  "layer": "measured"
+  "layer": "model"
  }
 ]

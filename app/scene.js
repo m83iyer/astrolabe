@@ -131,6 +131,7 @@ function makeStarPoints(count, positionsPc, mags, colors) {
 
 let measuredLayer = null;
 let structureLayer = null;
+let modelArmLines = null;
 let modelLayer = new THREE.Group();
 scene.add(modelLayer);
 
@@ -261,14 +262,37 @@ async function buildTierAStructure(url) {
     blending: THREE.AdditiveBlending,
   });
   const pts = new THREE.Points(geo, mat);
-  // NOT the "Model" layer despite living in modelLayer's group for now --
-  // Cepheids/masers/clusters are real catalogued objects (DATA_SCHEMA.md's
-  // `measured` section), just a different object type than raw stars.
-  // The actual Model layer (spiral-arm/disk shape) doesn't exist yet.
+  // NOT the "Model" layer despite living in modelLayer's group -- these are
+  // real catalogued objects (DATA_SCHEMA.md's `measured` section), just a
+  // different object type than raw stars. The actual Model layer (built
+  // separately just below) is the spiral-arm geometry.
   pts.userData.isStructureTracerLayer = true;
   pts.userData.rowCount = total;
   pts.userData.pointMeta = pointMeta;
-  return { points: pts, landmarks: m.landmarks || [] };
+
+  // Model layer: spiral-arm curves from Reid+2019's log-spiral fits (see
+  // scripts/build_model_arms.py). Rendered as soft additive-blended lines,
+  // deliberately NOT point-like or star-colored, so they read as "inferred
+  // shape" rather than individually measured positions -- the same
+  // Measured/Model visual distinction the rest of the app draws throughout.
+  const armLines = new THREE.Group();
+  const modelArms = (data.model && data.model.spiral_arms) || [];
+  for (const arm of modelArms) {
+    const pts3 = arm.points_pc.map((p) => new THREE.Vector3(p.x_pc / PC_PER_UNIT, p.z_pc / PC_PER_UNIT, -p.y_pc / PC_PER_UNIT));
+    const armGeo = new THREE.BufferGeometry().setFromPoints(pts3);
+    // AdditiveBlending + depthWrite:false to match every other layer's glow
+    // convention (see makeStarPoints/buildRealMeasuredLayer/the group loop
+    // above) -- a plain alpha-blended 1px line was nearly invisible against
+    // the bright core cluster, caught only by comparing against those.
+    const armMat = new THREE.LineBasicMaterial({ color: 0xc79bff, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending });
+    const line = new THREE.Line(armGeo, armMat);
+    line.userData = { isModelArm: true, name: arm.name, source: arm.source, confidenceNote: arm.confidence_note };
+    armLines.add(line);
+  }
+  armLines.visible = false; // Model toggle starts off until a viewer opts in -- see ui.js
+  armLines.userData.isModelLayer = true;
+
+  return { points: pts, armLines, landmarks: m.landmarks || [] };
 }
 
 // ---- placeholder universe (fallback if real tier data isn't reachable) ---
@@ -312,7 +336,7 @@ function buildPlaceholderUniverse() {
     armPts.push(galacticPcToWorld(pc, { x: 0, y: 0, z: 0 }));
   }
   const armGeo = new THREE.BufferGeometry().setFromPoints(armPts);
-  const armMat = new THREE.LineBasicMaterial({ color: 0xc79bff, transparent: true, opacity: 0.35 });
+  const armMat = new THREE.LineBasicMaterial({ color: 0xc79bff, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending });
   modelLayer.add(new THREE.Line(armGeo, armMat));
 
   return { landmarks: [
@@ -638,6 +662,8 @@ async function boot() {
     const structure = await buildTierAStructure("data/tier_a_structure.json");
     structureLayer = structure.points;
     modelLayer.add(structureLayer);
+    modelArmLines = structure.armLines;
+    modelLayer.add(modelArmLines);
     for (const lm of structure.landmarks) {
       const slug = lm.name.toLowerCase().normalize("NFKD").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
       addLandmark({ id: slug, name: lm.name, kind: "landmark", layer: "measured", posPc: { x: lm.x_pc, y: lm.y_pc, z: lm.z_pc } });
@@ -648,7 +674,7 @@ async function boot() {
     const universe = buildPlaceholderUniverse();
     for (const lm of universe.landmarks) addLandmark(lm);
   }
-  window.__astrolabe = { landmarkBodies, rig, SUN_PC, GC_PC, dataStatus, scene, camera, measuredLayer, modelLayer, structureLayer, galacticPcToWorld, renderer, tick };
+  window.__astrolabe = { landmarkBodies, rig, SUN_PC, GC_PC, dataStatus, scene, camera, measuredLayer, modelLayer, structureLayer, modelArmLines, galacticPcToWorld, renderer, tick };
   requestAnimationFrame(tick);
 }
 boot();

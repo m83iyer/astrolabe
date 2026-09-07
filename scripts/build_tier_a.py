@@ -89,10 +89,21 @@ def fetch_masers(log=print):
     d = json.loads(raw)
     out = []
     for row in d["data"]:
-        name, ra_h, dec, plx, arm = row
+        name, ra_deg, dec, plx, arm = row
         if plx is None or plx <= 0:
             continue
-        ra_deg = ra_h * 15.0  # RAJ2000 is in hours per this table's own metadata
+        # NOTE: this column's VizieR metadata *description* says "[0/24]
+        # Hour of Right Ascension" (describing the original paper's printed
+        # HH:MM:SS format), but the TAP query actually RETURNS the value
+        # pre-converted to decimal degrees (spot-checked: 266.788 for
+        # G000.31-00.20, matching that source's real 17h47m09s by-hand
+        # conversion exactly) -- an earlier version of this script trusted
+        # the description text and multiplied by 15 again, silently
+        # scrambling every maser's RA by 15x. Caught only by an independent
+        # oracle (build_model_arms.py's maser-vs-spiral-curve cross-check)
+        # showing two arms' real masers off by kiloparsecs from an
+        # otherwise-correct model -- verify actual returned VALUES against
+        # a known reference, not just the field's description text.
         dist_pc = 1000.0 / plx
         pc = frames.icrs_to_galactocentric_pc(ra_deg, dec, dist_pc)
         arm_code = (arm or "").strip()

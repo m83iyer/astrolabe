@@ -43,10 +43,11 @@ async function boot() {
   });
 
   // ---- layer toggles ----
-  // "Model" (spiral-arm/disk shape) has no data yet -- disabled in HTML,
-  // not wired here. "Measured" actually controls both real layers: raw
-  // stars (measuredLayer) and structure tracers (structureLayer) are both
-  // Measured data (see the comment in scene.js's buildTierAStructure).
+  // "Measured" controls both real measured layers: raw stars (measuredLayer)
+  // and structure tracers (structureLayer) -- both Measured data (see the
+  // comment in scene.js's buildTierAStructure). "Model" controls only the
+  // spiral-arm curves (modelArmLines) -- the inferred Reid+2019 fit, kept
+  // independent so hiding Measured never silently hides the Model layer.
   document.getElementById("toggle-measured").addEventListener("click", (e) => {
     const btn = e.currentTarget;
     const on = btn.getAttribute("aria-pressed") !== "true";
@@ -55,6 +56,18 @@ async function boot() {
     if (app.measuredLayer) app.measuredLayer.visible = on;
     if (app.structureLayer) app.structureLayer.visible = on;
   });
+  const modelBtn = document.getElementById("toggle-model");
+  if (app.modelArmLines) {
+    modelBtn.disabled = false;
+    modelBtn.title = "";
+    modelBtn.addEventListener("click", (e) => {
+      const btn = e.currentTarget;
+      const on = btn.getAttribute("aria-pressed") !== "true";
+      btn.setAttribute("aria-pressed", String(on));
+      btn.classList.toggle("active", on);
+      app.modelArmLines.visible = on;
+    });
+  }
 
   // ---- zoom presets ----
   const PRESETS = {
