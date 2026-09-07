@@ -49,10 +49,14 @@ WHERE g.phot_g_mean_mag < 10
 """.strip()
 
 HIP_QUERY = """
-SELECT HIP, RAdeg, DEdeg, Plx, Hpmag, "B-V"
+SELECT HIP, RArad, DErad, Plx, Hpmag
 FROM "I/311/hip2"
 WHERE Hpmag < 4
 """.strip()
+# Real column names verified live against this table's own metadata (it's
+# RArad/DErad in RADIANS, not RAdeg/DEdeg -- a first guess at "standard"
+# names produced an HTTP 400 "unknown column" error; checked rather than
+# guessed again before retrying).
 
 HIP_BRIGHT_CUTOFF_MAG = 4.0  # well inside Gaia's saturation gap (confirmed empty at brighter mags this session)
 DEDUP_ARCSEC = 2.0
@@ -106,19 +110,38 @@ def fetch_iau_names(log=print):
         f.write(raw)
     sha256 = hashlib.sha256(raw).hexdigest()
     text = raw.decode("utf-8", errors="replace")
-    # Columns are whitespace-delimited with a header row; HIP number and
-    # approved name are what we need. Format: Name | Designation | ... | HIP | ...
+    # Fixed-column format per the file's own header comment: (1)Name/ASCII
+    # ... (11)HIP (12)HD (13)RA (14)Dec (15)Date (16)Notes. The HIP column
+    # is a BARE integer (or "_" if no Hipparcos cross-match exists for that
+    # star) -- NOT prefixed with the literal text "HIP" anywhere in the
+    # data rows (a first attempt assumed an "HIP 12345" prefix by analogy
+    # with how people write it in prose, and matched almost nothing real --
+    # caught by checking known stars like Sirius/Vega came back unmatched,
+    # then inspecting the actual fetched file instead of re-guessing).
+    # Anchor on the Date column (always YYYY-MM-DD, a reliable fixed
+    # pattern) and capture the four fields immediately before it: HIP, HD,
+    # RA, Dec -- robust against the earlier Designation column sometimes
+    # containing internal spaces (e.g. "HR 897"), which breaks any
+    # left-to-right fixed-field-index split.
+    pattern = re.compile(r"(\S+)\s+(\S+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(\d{4}-\d{2}-\d{2})")
     by_hip = {}
     for line in text.splitlines():
         if not line or line.startswith("#"):
             continue
-        parts = re.split(r"\s{2,}", line.strip())
-        if len(parts) < 2:
+        tokens = line.split()
+        if not tokens:
             continue
-        name = parts[0].strip()
-        hip_match = re.search(r"HIP\s*(\d+)", line)
-        if hip_match and name and not name.isupper():
-            by_hip[int(hip_match.group(1))] = name
+        name = tokens[0]
+        m = pattern.search(line)
+        if not m:
+            continue
+        hip_str = m.group(1)
+        if hip_str == "_":
+            continue
+        try:
+            by_hip[int(hip_str)] = name
+        except ValueError:
+            continue
     log(f"[tier_b] parsed {len(by_hip)} HIP->name entries")
     return by_hip, raw_path, sha256
 
@@ -153,8 +176,8 @@ def build(log=print):
 
     # Dedup Hipparcos against Gaia by position (Gaia saturates before Hp=4
     # so overlap should be near-zero, but check rather than assume).
-    h_ra = np.array([_f(r["RAdeg"]) for r in hip_rows])
-    h_dec = np.array([_f(r["DEdeg"]) for r in hip_rows])
+    h_ra = np.degrees(np.array([_f(r["RArad"]) for r in hip_rows]))
+    h_dec = np.degrees(np.array([_f(r["DErad"]) for r in hip_rows]))
     h_plx = np.array([_f(r["Plx"]) for r in hip_rows])
     h_hpmag = np.array([_f(r["Hpmag"]) for r in hip_rows])
     h_hip = np.array([int(r["HIP"]) for r in hip_rows], dtype=np.int64)

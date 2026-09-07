@@ -1,0 +1,70 @@
+{
+  "tier": "b_bright_stars",
+  "description": "Bright stars (G<10 Gaia DR3, plus Hipparcos-2 for stars brighter than Gaia's saturation limit).",
+  "layout": "struct-of-arrays (each column is one contiguous typed-array block; read via byte_offset/byte_length below, no per-row parsing)",
+  "row_count": 474617,
+  "total_bytes": 13289296,
+  "columns": [
+    {
+      "name": "x_pc",
+      "dtype": "float32",
+      "js_typed_array": "Float32Array",
+      "count": 474617,
+      "byte_offset": 0,
+      "byte_length": 1898468,
+      "notes": "Galactocentric pc"
+    },
+    {
+      "name": "y_pc",
+      "dtype": "float32",
+      "js_typed_array": "Float32Array",
+      "count": 474617,
+      "byte_offset": 1898472,
+      "byte_length": 1898468,
+      "notes": "Galactocentric pc"
+    },
+    {
+      "name": "z_pc",
+      "dtype": "float32",
+      "js_typed_array": "Float32Array",
+      "count": 474617,
+      "byte_offset": 3796944,
+      "byte_length": 1898468,
+      "notes": "Galactocentric pc"
+    },
+    {
+      "name": "mag",
+      "dtype": "float32",
+      "js_typed_array": "Float32Array",
+      "count": 474617,
+      "byte_offset": 5695416,
+      "byte_length": 1898468,
+      "notes": "Gaia G-band mag (Gaia rows) or Hipparcos Hp mag (Hipparcos rows) -- not perfectly homogeneous, both are broadband optical"
+    },
+    {
+      "name": "bp_rp",
+      "dtype": "float32",
+      "js_typed_array": "Float32Array",
+      "count": 474617,
+      "byte_offset": 7593888,
+      "byte_length": 1898468,
+      "notes": "Gaia BP-RP color index; NaN for Hipparcos-only rows (no bp_rp fetched for those)"
+    },
+    {
+      "name": "catalog_id",
+      "dtype": "int64",
+      "js_typed_array": "BigInt64Array",
+      "count": 474617,
+      "byte_offset": 9492360,
+      "byte_length": 3796936,
+      "notes": "Gaia source_id if positive; -(HIP number) if negative"
+    }
+  ],
+  "generated_utc": "2026-09-07T13:52:51.266651+00:00",
+  "gaia_row_count": 474137,
+  "hipparcos_row_count": 480,
+  "hipparcos_dedup_dropped": 0,
+  "named_row_count": 237,
+  "gaia_cut": "phot_g_mean_mag < 10 AND parallax_over_error > 5",
+  "hipparcos_cut": "Hpmag < 4.0, deduped against Gaia within 2.0 arcsec"
+}
