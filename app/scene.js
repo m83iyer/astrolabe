@@ -258,7 +258,11 @@ async function buildTierAStructure(url) {
     blending: THREE.AdditiveBlending,
   });
   const pts = new THREE.Points(geo, mat);
-  pts.userData.isModelStructureLayer = true;
+  // NOT the "Model" layer despite living in modelLayer's group for now --
+  // Cepheids/masers/clusters are real catalogued objects (DATA_SCHEMA.md's
+  // `measured` section), just a different object type than raw stars.
+  // The actual Model layer (spiral-arm/disk shape) doesn't exist yet.
+  pts.userData.isStructureTracerLayer = true;
   pts.userData.rowCount = total;
   return { points: pts, landmarks: m.landmarks || [] };
 }

@@ -43,17 +43,17 @@ async function boot() {
   });
 
   // ---- layer toggles ----
+  // "Model" (spiral-arm/disk shape) has no data yet -- disabled in HTML,
+  // not wired here. "Measured" actually controls both real layers: raw
+  // stars (measuredLayer) and structure tracers (structureLayer) are both
+  // Measured data (see the comment in scene.js's buildTierAStructure).
   document.getElementById("toggle-measured").addEventListener("click", (e) => {
     const btn = e.currentTarget;
     const on = btn.getAttribute("aria-pressed") !== "true";
     btn.setAttribute("aria-pressed", String(on));
     btn.classList.toggle("active", on);
-  });
-  document.getElementById("toggle-model").addEventListener("click", (e) => {
-    const btn = e.currentTarget;
-    const on = btn.getAttribute("aria-pressed") !== "true";
-    btn.setAttribute("aria-pressed", String(on));
-    btn.classList.toggle("active", on);
+    if (app.measuredLayer) app.measuredLayer.visible = on;
+    if (app.structureLayer) app.structureLayer.visible = on;
   });
 
   // ---- zoom presets ----

@@ -39,12 +39,22 @@ snapshot (Gaia DR3 epoch, J2016.0) you fly through freely.
 
 ## Structure
 
-- `app/` — the static site, following Orrery's pattern: static
-  Three.js/WebGL site, data-driven, no build step.
-- `scripts/` — the data pipeline: per-source fetch scripts that save raw
-  data + sha256 to the SSD and record every source in
-  `app/data/sources.json`, the same integrity pattern as Orrery.
-- `DATA_SCHEMA.md` — the data contract (once M1 lands).
+- `app/` — the static site: `index.html`, `styles.css`, `scene.js` (the
+  3D engine — floating-origin free-flight camera in Galactocentric
+  parsecs, log-scale zoom, a custom point shader for log-brightness star
+  sizing), `ui.js` (navigator, layer toggles, Sources panel),
+  `data/` (everything numeric; the two star-catalog `.bin` files are not
+  in git — see Hosting below).
+- `scripts/` — the data pipeline: `frames.py` (the single, verified
+  ICRS/Galactic->Galactocentric coordinate transform every other script
+  imports — never duplicated), `gaia_tap.py` (shared Gaia/VizieR async
+  TAP client), `bin_layout.py` (struct-of-arrays binary writer),
+  `build_tier_a.py` (structure: Cepheids, masers, open + globular
+  clusters, landmarks), `build_tier_b.py` (bright stars: Gaia DR3 G<10 +
+  Hipparcos-2 for Gaia's saturation gap + real IAU star names),
+  `build_tier_c.py` (the solar neighborhood: Gaia Catalogue of Nearby
+  Stars, ~331k stars within 100 pc).
+- `DATA_SCHEMA.md` — the data contract.
 
 ## Data integrity
 
@@ -60,8 +70,19 @@ from memory.
 
 Static site served from `app/` via GitHub Pages
 (`.github/workflows/deploy-pages.yml`, deploys on push to `main`), live
-at https://m83iyer.github.io/astrolabe/.
+at https://m83iyer.github.io/astrolabe/. The quantized star-catalog
+binaries (Tier B/C — real, generated data, but the wrong shape for git
+history) ship as assets on the `data-v1` GitHub Release instead; the
+deploy workflow downloads them into `app/data/` before publishing.
 
 ## Status
 
-Scaffolding — data pipeline and rendering core in progress.
+Live, real data: 805,929 stars (Tier B + Tier C combined) and 9,569
+structure tracers (Cepheids, masers, open + globular clusters) from
+Gaia DR3, the Gaia Catalogue of Nearby Stars, Hipparcos-2, Skowron+2019,
+Reid+2019, Hunt & Reffert 2023, and the Baumgardt+ globular cluster
+orbit database — fetched, hashed, and cited, not estimated. The two
+gaps still open: the **Model** layer (spiral-arm geometry and disk/bar
+shape) isn't built yet — everything currently on screen is the
+**Measured** layer — and there's no real per-object detail panel yet
+(clicking a landmark shows only its distance from the Sun).
