@@ -1,0 +1,42 @@
+[
+ {
+  "url": "https://tapvizier.cds.unistra.fr/TAPVizieR/tap/sync (J/AcA/69/305/table1)",
+  "fetched_utc": "2026-09-07T13:57:26.620534+00:00",
+  "sha256": "d40eae7f4c543dd100aee0ae5856dc89a6a84c793e6c7bc57ce77ee2b851c09e",
+  "local_file": "/Volumes/Media/AutomationStore/project-artifacts/astrolabe/2026-09-07/raw-fetches/cepheids.json",
+  "supplies": [
+   "tier_a cepheids"
+  ],
+  "layer": "measured"
+ },
+ {
+  "url": "https://tapvizier.cds.unistra.fr/TAPVizieR/tap/sync (J/ApJ/885/131/table1)",
+  "fetched_utc": "2026-09-07T13:57:27.496632+00:00",
+  "sha256": "0183418d0eb1a9f3df646d3b8dc7ea7cbd80090240c842564a438389ef379e45",
+  "local_file": "/Volumes/Media/AutomationStore/project-artifacts/astrolabe/2026-09-07/raw-fetches/masers.json",
+  "supplies": [
+   "tier_a masers"
+  ],
+  "layer": "measured"
+ },
+ {
+  "url": "https://tapvizier.cds.unistra.fr/TAPVizieR/tap/sync (J/A+A/673/A114/clusters, Type=o)",
+  "fetched_utc": "2026-09-07T13:57:29.100850+00:00",
+  "sha256": "c7c6aae6908c17d6c6b74d6d2d4df523fa3a3453c3f3abb9b14b68087352ddcc",
+  "local_file": "/Volumes/Media/AutomationStore/project-artifacts/astrolabe/2026-09-07/raw-fetches/open_clusters.json",
+  "supplies": [
+   "tier_a open clusters"
+  ],
+  "layer": "measured"
+ },
+ {
+  "url": "https://people.smp.uq.edu.au/HolgerBaumgardt/globular/orbits_table.txt",
+  "fetched_utc": "2026-09-07T13:57:31.739103+00:00",
+  "sha256": "c95a085586e11e29a655a69fb9c31116072f774209ce561c11c92de1ede4bda3",
+  "local_file": "/Volumes/Media/AutomationStore/project-artifacts/astrolabe/2026-09-07/raw-fetches/globular_clusters.txt",
+  "supplies": [
+   "tier_a globular clusters"
+  ],
+  "layer": "measured"
+ }
+]
