@@ -1,0 +1,9 @@
+# Quantized star-catalog binaries (Tier B/C) are NOT committed to git
+# (git_binary_guard.py / L-005: past 41GB .git incident from binary data).
+# They're real, hashed, generated data, but git history is the wrong home
+# for them -- shipped instead as GitHub Release assets, downloaded by
+# .github/workflows/deploy-pages.yml at deploy time. See README.
+app/data/tier_b_bright_stars.bin
+app/data/tier_c_neighborhood.bin
+__pycache__/
+*.pyc

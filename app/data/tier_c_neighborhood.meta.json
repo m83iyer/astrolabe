@@ -1,0 +1,69 @@
+{
+  "tier": "c_neighborhood",
+  "description": "Solar-neighborhood stars within 100 pc, from the Gaia Catalogue of Nearby Stars (GCNS).",
+  "layout": "struct-of-arrays (each column is one contiguous typed-array block; read via byte_offset/byte_length below, no per-row parsing)",
+  "row_count": 331312,
+  "total_bytes": 9276736,
+  "columns": [
+    {
+      "name": "x_pc",
+      "dtype": "float32",
+      "js_typed_array": "Float32Array",
+      "count": 331312,
+      "byte_offset": 0,
+      "byte_length": 1325248,
+      "notes": "Galactocentric pc, +x toward Sun per DATA_SCHEMA.md"
+    },
+    {
+      "name": "y_pc",
+      "dtype": "float32",
+      "js_typed_array": "Float32Array",
+      "count": 331312,
+      "byte_offset": 1325248,
+      "byte_length": 1325248,
+      "notes": "Galactocentric pc"
+    },
+    {
+      "name": "z_pc",
+      "dtype": "float32",
+      "js_typed_array": "Float32Array",
+      "count": 331312,
+      "byte_offset": 2650496,
+      "byte_length": 1325248,
+      "notes": "Galactocentric pc, +z toward NGP"
+    },
+    {
+      "name": "phot_g_mean_mag",
+      "dtype": "float32",
+      "js_typed_array": "Float32Array",
+      "count": 331312,
+      "byte_offset": 3975744,
+      "byte_length": 1325248,
+      "notes": "Gaia G-band apparent magnitude"
+    },
+    {
+      "name": "bp_rp",
+      "dtype": "float32",
+      "js_typed_array": "Float32Array",
+      "count": 331312,
+      "byte_offset": 5300992,
+      "byte_length": 1325248,
+      "notes": "Gaia BP-RP color index; NaN if either band missing"
+    },
+    {
+      "name": "source_id",
+      "dtype": "int64",
+      "js_typed_array": "BigInt64Array",
+      "count": 331312,
+      "byte_offset": 6626240,
+      "byte_length": 2650496,
+      "notes": "Gaia EDR3 source_id (read as BigInt64Array)"
+    }
+  ],
+  "source": "Gaia EDR3 external.gaiaedr3_gcns_main_1 via Gaia TAP async query",
+  "source_note": "GCNS xcoord_50/ycoord_50/zcoord_50 are HELIOCENTRIC Galactic-frame Cartesian pc (verified against scripts/frames.py, not Galactocentric as originally assumed) -- converted here via a single translation using frames.SUN_GALACTOCENTRIC_PC.",
+  "generated_utc": "2026-09-07T13:42:56.231667+00:00",
+  "rows_dropped_missing_position": 0,
+  "rows_missing_mag": 431,
+  "rows_missing_bp_rp": 7002
+}
