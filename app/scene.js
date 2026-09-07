@@ -133,7 +133,80 @@ let measuredLayer = null;
 let modelLayer = new THREE.Group();
 scene.add(modelLayer);
 
-// ---- placeholder universe (until real tier data lands) -------------------
+// ---- real tier data loading (struct-of-arrays binary, see bin_layout.py) -
+
+async function loadTierBinary(metaUrl, binUrl) {
+  const [meta, buf] = await Promise.all([
+    fetch(metaUrl).then((r) => { if (!r.ok) throw new Error(metaUrl + " " + r.status); return r.json(); }),
+    fetch(binUrl).then((r) => { if (!r.ok) throw new Error(binUrl + " " + r.status); return r.arrayBuffer(); }),
+  ]);
+  const columns = {};
+  for (const col of meta.columns) {
+    const Ctor = { Float32Array, BigInt64Array, Uint8Array }[col.js_typed_array];
+    if (!Ctor) throw new Error("unsupported js_typed_array " + col.js_typed_array);
+    columns[col.name] = new Ctor(buf, col.byte_offset, col.count);
+  }
+  return { meta, columns };
+}
+
+// BP-RP (Gaia color index) -> RGB. A disclosed, simple linear ramp (blue at
+// hot/negative BP-RP through white near Sun-like ~0.8 to red at cool/high
+// BP-RP) -- NOT a physically-modeled blackbody or the Mamajek dwarf-
+// sequence color table; a real color-table pass is a documented follow-up
+// (see README), and stars with no bp_rp value get a neutral white-grey.
+function colorForBpRp(bpRp) {
+  if (!Number.isFinite(bpRp)) return [0.85, 0.85, 0.9];
+  const t = Math.max(0, Math.min(1, (bpRp + 0.3) / 3.3));
+  const stops = [
+    [0.65, 0.75, 1.0],   // hot/blue
+    [1.0, 1.0, 1.0],     // white
+    [1.0, 0.85, 0.6],    // yellow-orange
+    [1.0, 0.55, 0.4],    // red
+  ];
+  const seg = t * (stops.length - 1);
+  const i = Math.min(stops.length - 2, Math.floor(seg));
+  const f = seg - i;
+  return [
+    stops[i][0] + (stops[i + 1][0] - stops[i][0]) * f,
+    stops[i][1] + (stops[i + 1][1] - stops[i][1]) * f,
+    stops[i][2] + (stops[i + 1][2] - stops[i][2]) * f,
+  ];
+}
+
+async function buildRealMeasuredLayer(metaUrl, binUrl) {
+  const { meta, columns } = await loadTierBinary(metaUrl, binUrl);
+  const n = meta.row_count;
+  const positions = new Float32Array(n * 3);
+  const mags = new Float32Array(n);
+  const colors = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    positions[i * 3] = columns.x_pc[i] / PC_PER_UNIT;
+    positions[i * 3 + 1] = columns.z_pc[i] / PC_PER_UNIT;
+    positions[i * 3 + 2] = -columns.y_pc[i] / PC_PER_UNIT;
+    const mag = columns.phot_g_mean_mag ? columns.phot_g_mean_mag[i] : (columns.mag ? columns.mag[i] : 6);
+    mags[i] = Number.isFinite(mag) ? mag : 12;
+    const [r, g, b] = colorForBpRp(columns.bp_rp ? columns.bp_rp[i] : NaN);
+    colors[i * 3] = r; colors[i * 3 + 1] = g; colors[i * 3 + 2] = b;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute("aMag", new THREE.BufferAttribute(mags, 1));
+  geo.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
+  const mat = new THREE.ShaderMaterial({
+    vertexShader: STAR_VERT,
+    fragmentShader: STAR_FRAG,
+    uniforms: { uExposure: { value: 1.0 }, uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 1.5) } },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const pts = new THREE.Points(geo, mat);
+  pts.userData.isStarLayer = true;
+  pts.userData.rowCount = n;
+  return pts;
+}
+
+// ---- placeholder universe (fallback if real tier data isn't reachable) ---
 
 function buildPlaceholderUniverse() {
   // A synthetic solar-neighborhood-like scatter (NOT real star positions —
@@ -411,10 +484,20 @@ function updateInfoPanel(def) {
 
 // ---- boot -----------------------------------------------------------------
 
-function boot() {
-  const universe = buildPlaceholderUniverse();
-  for (const lm of universe.landmarks) addLandmark(lm);
-  window.__astrolabe = { landmarkBodies, rig, SUN_PC, GC_PC, dataStatus: "placeholder", scene, camera, measuredLayer, modelLayer, galacticPcToWorld, renderer, tick };
+async function boot() {
+  let dataStatus = "placeholder";
+  try {
+    measuredLayer = await buildRealMeasuredLayer("data/tier_c_neighborhood.meta.json", "data/tier_c_neighborhood.bin");
+    scene.add(measuredLayer);
+    addLandmark({ id: "sun", name: "Sun", kind: "landmark", layer: "measured", posPc: SUN_PC });
+    addLandmark({ id: "gc", name: "Sagittarius A∗", kind: "landmark", layer: "measured", posPc: GC_PC });
+    dataStatus = "real:tier_c_only"; // tier A (model/structure) and tier B (bright stars) not yet wired in
+  } catch (err) {
+    console.warn("Real tier data unavailable, falling back to placeholder:", err);
+    const universe = buildPlaceholderUniverse();
+    for (const lm of universe.landmarks) addLandmark(lm);
+  }
+  window.__astrolabe = { landmarkBodies, rig, SUN_PC, GC_PC, dataStatus, scene, camera, measuredLayer, modelLayer, galacticPcToWorld, renderer, tick };
   requestAnimationFrame(tick);
 }
 boot();

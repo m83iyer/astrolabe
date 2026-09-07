@@ -26,6 +26,15 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The quantized star-catalog binaries (Tier B/C) are real, hashed,
+      # generated data, but git history is the wrong home for binary data
+      # (see .gitignore) -- they live as assets on the `data-v1` GitHub
+      # Release instead, downloaded here before the Pages upload step.
+      - name: Download tier data release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download data-v1 --repo ${{ github.repository }} --dir app/data --clobber || echo "::warning::data-v1 release not found or has no assets yet -- deploying without tier binaries"
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

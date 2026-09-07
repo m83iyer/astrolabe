@@ -13,11 +13,15 @@ function waitForAstrolabe() {
 async function boot() {
   const app = await waitForAstrolabe();
 
-  if (app.dataStatus === "placeholder") {
+  if (app.dataStatus !== "real:full") {
+    const messages = {
+      placeholder: "Placeholder data — the real star catalog pipeline hasn't been wired in yet.",
+      "real:tier_c_only": "Real Gaia data (331k neighborhood stars) — bright-star and structure layers still loading in.",
+    };
     const warn = document.createElement("div");
     warn.className = "panel";
     warn.style.cssText = "position:fixed;top:64px;left:14px;padding:8px 14px;font-size:11px;color:#ffb37a;border-color:#ffb37a;";
-    warn.textContent = "Placeholder data — the real star catalog pipeline hasn't been wired in yet.";
+    warn.textContent = messages[app.dataStatus] || ("Data status: " + app.dataStatus);
     document.getElementById("hud").appendChild(warn);
   }
 
