@@ -1,0 +1,21 @@
+{
+  "acceptance_criteria": [
+    "app/data/tier_a_structure.json's model section includes disk and bar entries matching DATA_SCHEMA.md's documented shape, each citing a real fetched source, rendered under the existing #toggle-model toggle, verified live",
+    "app/data/sources_stars.json exists and loads with no 404, citing real fetched sources for Tier B/C (Gaia DR3, Hipparcos-2, IAU-CSN), verified in the live Sources panel",
+    "Clicking a non-landmark structure-tracer object (cepheid/maser/cluster/named star) shows real per-object detail beyond distance-from-Sun, using data already present in the shipped tiers, verified live via click-to-inspect"
+  ],
+  "branch": "main",
+  "canonical_checkout": "/Users/manojiyer/Library/Mobile Documents/com~apple~CloudDocs/Claude/projects/astrolabe",
+  "driver": "codex",
+  "handoff": null,
+  "milestone": "Model layer completion (disk/bar) + Tier B/C source citations + per-object detail panel",
+  "override": null,
+  "project": "astrolabe",
+  "proof_paths": [],
+  "protocol_version": "1.0",
+  "reviewer": "claude",
+  "starting_sha": "b8ad56f5001efd2222cfa08e4423dd6e964a2499",
+  "status": "approved",
+  "updated_at": "2026-09-07T16:04:51.880315+00:00",
+  "updated_by": "claude"
+}
